@@ -67,27 +67,30 @@ contract CoinHideGame {
         gameCounter++;
         uint256 gameId = gameCounter;
         
-        games[gameId] = Game({
-            creator: msg.sender,
-            joiner: address(0),
-            stake: msg.value,
-            totalRounds: 0,
-            currentRound: 0,
-            status: GameStatus.Waiting,
-            creatorReady: false,
-            joinerReady: false,
-            hideStartTime: 0,
-            findStartTime: 0,
-            currentHider: address(0),
-            currentSeeker: address(0),
-            currentHideBox: 0,
-            creatorHiding: true
-        });
+        initializeGame(gameId, msg.sender, msg.value);
         
         playerGames[msg.sender].push(gameId);
         
         emit GameCreated(gameId, msg.sender, msg.value);
         return gameId;
+    }
+    
+    function initializeGame(uint256 gameId, address creator, uint256 stake) internal {
+        Game storage game = games[gameId];
+        game.creator = creator;
+        game.joiner = address(0);
+        game.stake = stake;
+        game.totalRounds = 0;
+        game.currentRound = 0;
+        game.status = GameStatus.Waiting;
+        game.creatorReady = false;
+        game.joinerReady = false;
+        game.hideStartTime = 0;
+        game.findStartTime = 0;
+        game.currentHider = address(0);
+        game.currentSeeker = address(0);
+        game.currentHideBox = 0;
+        game.creatorHiding = true;
     }
     
     function joinGame(uint256 gameId) external payable validGame(gameId) {
@@ -131,22 +134,13 @@ contract CoinHideGame {
     function startNewRound(uint256 gameId) internal {
         Game storage game = games[gameId];
         game.currentRound++;
-        game.totalRounds = game.currentRound;
+        uint256 newRound = game.currentRound;
+        game.totalRounds = newRound;
         game.creatorReady = false;
         game.joinerReady = false;
         
         // Initialize round
-        rounds[gameId][game.currentRound] = Round({
-            creatorHideBox: 0,
-            joinerHideBox: 0,
-            creatorFindBox: 0,
-            joinerFindBox: 0,
-            creatorFound: false,
-            joinerFound: false,
-            creatorScore: 0,
-            joinerScore: 0,
-            completed: false
-        });
+        initializeRound(gameId, newRound);
         
         // Creator hides first
         game.creatorHiding = true;
@@ -154,6 +148,19 @@ contract CoinHideGame {
         game.currentSeeker = game.joiner;
         game.status = GameStatus.Hiding;
         game.hideStartTime = block.timestamp;
+    }
+    
+    function initializeRound(uint256 gameId, uint256 roundNum) internal {
+        Round storage round = rounds[gameId][roundNum];
+        round.creatorHideBox = 0;
+        round.joinerHideBox = 0;
+        round.creatorFindBox = 0;
+        round.joinerFindBox = 0;
+        round.creatorFound = false;
+        round.joinerFound = false;
+        round.creatorScore = 0;
+        round.joinerScore = 0;
+        round.completed = false;
     }
     
     function hideCoin(uint256 gameId, uint8 box) external validGame(gameId) {
@@ -248,29 +255,41 @@ contract CoinHideGame {
     }
     
     function checkRoundComplete(uint256 gameId) internal {
-        Game storage game = games[gameId];
-        Round storage round = rounds[gameId][game.currentRound];
+        uint256 roundNum = games[gameId].currentRound;
         
-        // Check if both players have hidden and found
-        if (round.creatorHideBox != 0 && round.joinerHideBox != 0 && 
-            round.creatorFindBox != 0 && round.joinerFindBox != 0) {
-            // Round complete
-            round.completed = true;
-            game.status = GameStatus.RoundComplete;
-            
-            emit RoundComplete(gameId, game.currentRound, round.creatorScore, round.joinerScore);
-            
-            // Check for winner
-            if (round.creatorScore >= WIN_SCORE) {
-                finishGame(gameId, game.creator);
-            } else if (round.joinerScore >= WIN_SCORE) {
-                finishGame(gameId, game.joiner);
-            } else {
-                startNewRound(gameId);
-            }
+        // Check if round is complete
+        if (isRoundComplete(gameId, roundNum)) {
+            completeRound(gameId, roundNum);
         } else {
-            // Switch roles
             switchRoles(gameId);
+        }
+    }
+    
+    function isRoundComplete(uint256 gameId, uint256 roundNum) internal view returns (bool) {
+        Round storage round = rounds[gameId][roundNum];
+        return (round.creatorHideBox != 0 && round.joinerHideBox != 0 && 
+                round.creatorFindBox != 0 && round.joinerFindBox != 0);
+    }
+    
+    function completeRound(uint256 gameId, uint256 roundNum) internal {
+        Game storage game = games[gameId];
+        Round storage round = rounds[gameId][roundNum];
+        
+        round.completed = true;
+        game.status = GameStatus.RoundComplete;
+        
+        uint256 creatorScore = round.creatorScore;
+        uint256 joinerScore = round.joinerScore;
+        
+        emit RoundComplete(gameId, roundNum, creatorScore, joinerScore);
+        
+        // Check for winner
+        if (creatorScore >= WIN_SCORE) {
+            finishGame(gameId, game.creator);
+        } else if (joinerScore >= WIN_SCORE) {
+            finishGame(gameId, game.joiner);
+        } else {
+            startNewRound(gameId);
         }
     }
     
