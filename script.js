@@ -1,36 +1,73 @@
 // Web3 and Contract Configuration
-const CONTRACT_ADDRESS = '0x8F4D6D46E4977bbeFFa2D73544fe6f935a3a4859';
+const CONTRACT_ADDRESS = '0x07Ce2990f2EBc8D315C5e2119C2d32c30DC99072';
 const CONTRACT_ABI = [
 	{
+		"anonymous": false,
 		"inputs": [
 			{
+				"indexed": true,
 				"internalType": "uint256",
 				"name": "gameId",
 				"type": "uint256"
 			},
 			{
+				"indexed": true,
 				"internalType": "uint256",
-				"name": "location",
+				"name": "round",
 				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "seeker",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint8",
+				"name": "box",
+				"type": "uint8"
+			},
+			{
+				"indexed": false,
+				"internalType": "bool",
+				"name": "found",
+				"type": "bool"
 			}
 		],
-		"name": "claimFound",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
+		"name": "CoinFound",
+		"type": "event"
 	},
 	{
+		"anonymous": false,
 		"inputs": [
 			{
+				"indexed": true,
 				"internalType": "uint256",
 				"name": "gameId",
 				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "round",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "hider",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint8",
+				"name": "box",
+				"type": "uint8"
 			}
 		],
-		"name": "claimTimeout",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
+		"name": "CoinHidden",
+		"type": "event"
 	},
 	{
 		"inputs": [],
@@ -46,6 +83,24 @@ const CONTRACT_ABI = [
 		"type": "function"
 	},
 	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint8",
+				"name": "box",
+				"type": "uint8"
+			}
+		],
+		"name": "findCoin",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
 		"anonymous": false,
 		"inputs": [
 			{
@@ -57,7 +112,7 @@ const CONTRACT_ABI = [
 			{
 				"indexed": true,
 				"internalType": "address",
-				"name": "hider",
+				"name": "creator",
 				"type": "address"
 			},
 			{
@@ -80,7 +135,7 @@ const CONTRACT_ABI = [
 				"type": "uint256"
 			},
 			{
-				"indexed": false,
+				"indexed": true,
 				"internalType": "address",
 				"name": "winner",
 				"type": "address"
@@ -92,52 +147,26 @@ const CONTRACT_ABI = [
 				"type": "uint256"
 			}
 		],
-		"name": "GameTimeout",
+		"name": "GameFinished",
 		"type": "event"
 	},
 	{
-		"anonymous": false,
 		"inputs": [
 			{
-				"indexed": true,
 				"internalType": "uint256",
 				"name": "gameId",
 				"type": "uint256"
 			},
 			{
-				"indexed": false,
-				"internalType": "address",
-				"name": "winner",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
+				"internalType": "uint8",
+				"name": "box",
+				"type": "uint8"
 			}
 		],
-		"name": "GameWon",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "gameId",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "bytes32",
-				"name": "locationHash",
-				"type": "bytes32"
-			}
-		],
-		"name": "HideLocationSet",
-		"type": "event"
+		"name": "hideCoin",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
 	},
 	{
 		"inputs": [
@@ -162,37 +191,14 @@ const CONTRACT_ABI = [
 				"type": "uint256"
 			},
 			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "location",
-				"type": "uint256"
+				"indexed": true,
+				"internalType": "address",
+				"name": "joiner",
+				"type": "address"
 			}
 		],
-		"name": "LocationRevealed",
+		"name": "PlayerJoined",
 		"type": "event"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "gameId",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "location",
-				"type": "uint256"
-			},
-			{
-				"internalType": "string",
-				"name": "secret",
-				"type": "string"
-			}
-		],
-		"name": "revealLocation",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
 	},
 	{
 		"anonymous": false,
@@ -206,11 +212,42 @@ const CONTRACT_ABI = [
 			{
 				"indexed": true,
 				"internalType": "address",
-				"name": "seeker",
+				"name": "player",
 				"type": "address"
 			}
 		],
-		"name": "SeekerJoined",
+		"name": "PlayerReady",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "round",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "creatorScore",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "joinerScore",
+				"type": "uint256"
+			}
+		],
+		"name": "RoundComplete",
 		"type": "event"
 	},
 	{
@@ -219,27 +256,16 @@ const CONTRACT_ABI = [
 				"internalType": "uint256",
 				"name": "gameId",
 				"type": "uint256"
-			},
-			{
-				"internalType": "bytes32",
-				"name": "locationHash",
-				"type": "bytes32"
 			}
 		],
-		"name": "setHideLocation",
+		"name": "setReady",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"name": "balances",
+		"inputs": [],
+		"name": "FIND_DURATION",
 		"outputs": [
 			{
 				"internalType": "uint256",
@@ -275,12 +301,12 @@ const CONTRACT_ABI = [
 		"outputs": [
 			{
 				"internalType": "address",
-				"name": "hider",
+				"name": "creator",
 				"type": "address"
 			},
 			{
 				"internalType": "address",
-				"name": "seeker",
+				"name": "joiner",
 				"type": "address"
 			},
 			{
@@ -290,32 +316,57 @@ const CONTRACT_ABI = [
 			},
 			{
 				"internalType": "uint256",
-				"name": "hideTime",
+				"name": "totalRounds",
 				"type": "uint256"
 			},
 			{
 				"internalType": "uint256",
-				"name": "seekTime",
+				"name": "currentRound",
 				"type": "uint256"
 			},
 			{
-				"internalType": "uint256",
-				"name": "hideLocation",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "revealTime",
-				"type": "uint256"
-			},
-			{
-				"internalType": "enum EscroGame.GameStatus",
+				"internalType": "enum CoinHideGame.GameStatus",
 				"name": "status",
 				"type": "uint8"
 			},
 			{
 				"internalType": "bool",
-				"name": "hiderRevealed",
+				"name": "creatorReady",
+				"type": "bool"
+			},
+			{
+				"internalType": "bool",
+				"name": "joinerReady",
+				"type": "bool"
+			},
+			{
+				"internalType": "uint256",
+				"name": "hideStartTime",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "findStartTime",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "currentHider",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "currentSeeker",
+				"type": "address"
+			},
+			{
+				"internalType": "uint8",
+				"name": "currentHideBox",
+				"type": "uint8"
+			},
+			{
+				"internalType": "bool",
+				"name": "creatorHiding",
 				"type": "bool"
 			}
 		],
@@ -330,42 +381,202 @@ const CONTRACT_ABI = [
 				"type": "uint256"
 			}
 		],
-		"name": "getGame",
+		"name": "getGameCreator",
 		"outputs": [
 			{
 				"internalType": "address",
-				"name": "hider",
+				"name": "",
 				"type": "address"
-			},
-			{
-				"internalType": "address",
-				"name": "seeker",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "stake",
-				"type": "uint256"
-			},
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
 			{
 				"internalType": "uint256",
-				"name": "hideTime",
+				"name": "gameId",
 				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "seekTime",
-				"type": "uint256"
-			},
-			{
-				"internalType": "enum EscroGame.GameStatus",
-				"name": "status",
-				"type": "uint8"
-			},
+			}
+		],
+		"name": "getGameCreatorHiding",
+		"outputs": [
 			{
 				"internalType": "bool",
-				"name": "hiderRevealed",
+				"name": "",
 				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			}
+		],
+		"name": "getGameCreatorReady",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			}
+		],
+		"name": "getGameCurrentHideBox",
+		"outputs": [
+			{
+				"internalType": "uint8",
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			}
+		],
+		"name": "getGameCurrentHider",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			}
+		],
+		"name": "getGameCurrentRound",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			}
+		],
+		"name": "getGameCurrentSeeker",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			}
+		],
+		"name": "getGameJoiner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			}
+		],
+		"name": "getGameJoinerReady",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			}
+		],
+		"name": "getGameStake",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			}
+		],
+		"name": "getGameStatus",
+		"outputs": [
+			{
+				"internalType": "enum CoinHideGame.GameStatus",
+				"name": "",
+				"type": "uint8"
 			}
 		],
 		"stateMutability": "view",
@@ -385,6 +596,246 @@ const CONTRACT_ABI = [
 				"internalType": "uint256[]",
 				"name": "",
 				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "player",
+				"type": "address"
+			}
+		],
+		"name": "getPlayerHistory",
+		"outputs": [
+			{
+				"internalType": "uint8[]",
+				"name": "",
+				"type": "uint8[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "roundNum",
+				"type": "uint256"
+			}
+		],
+		"name": "getRoundCompleted",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "roundNum",
+				"type": "uint256"
+			}
+		],
+		"name": "getRoundCreatorFindBox",
+		"outputs": [
+			{
+				"internalType": "uint8",
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "roundNum",
+				"type": "uint256"
+			}
+		],
+		"name": "getRoundCreatorFound",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "roundNum",
+				"type": "uint256"
+			}
+		],
+		"name": "getRoundCreatorHideBox",
+		"outputs": [
+			{
+				"internalType": "uint8",
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "roundNum",
+				"type": "uint256"
+			}
+		],
+		"name": "getRoundCreatorScore",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "roundNum",
+				"type": "uint256"
+			}
+		],
+		"name": "getRoundJoinerFindBox",
+		"outputs": [
+			{
+				"internalType": "uint8",
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "roundNum",
+				"type": "uint256"
+			}
+		],
+		"name": "getRoundJoinerFound",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "roundNum",
+				"type": "uint256"
+			}
+		],
+		"name": "getRoundJoinerHideBox",
+		"outputs": [
+			{
+				"internalType": "uint8",
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "roundNum",
+				"type": "uint256"
+			}
+		],
+		"name": "getRoundJoinerScore",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -441,8 +892,72 @@ const CONTRACT_ABI = [
 		"type": "function"
 	},
 	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "rounds",
+		"outputs": [
+			{
+				"internalType": "uint8",
+				"name": "creatorHideBox",
+				"type": "uint8"
+			},
+			{
+				"internalType": "uint8",
+				"name": "joinerHideBox",
+				"type": "uint8"
+			},
+			{
+				"internalType": "uint8",
+				"name": "creatorFindBox",
+				"type": "uint8"
+			},
+			{
+				"internalType": "uint8",
+				"name": "joinerFindBox",
+				"type": "uint8"
+			},
+			{
+				"internalType": "bool",
+				"name": "creatorFound",
+				"type": "bool"
+			},
+			{
+				"internalType": "bool",
+				"name": "joinerFound",
+				"type": "bool"
+			},
+			{
+				"internalType": "uint256",
+				"name": "creatorScore",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "joinerScore",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "completed",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [],
-		"name": "SEEK_DURATION",
+		"name": "WIN_SCORE",
 		"outputs": [
 			{
 				"internalType": "uint256",

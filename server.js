@@ -17,10 +17,13 @@ const BASE_RPC = 'https://mainnet.base.org';
 const provider = new ethers.providers.JsonRpcProvider(BASE_RPC);
 
 // Contract Configuration (Update with deployed contract address)
-const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || '0x8F4D6D46E4977bbeFFa2D73544fe6f935a3a4859';
+const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || '0x07Ce2990f2EBc8D315C5e2119C2d32c30DC99072';
 const CONTRACT_ABI = [
     "function gameCounter() external view returns (uint256)",
-    "function getGame(uint256 gameId) external view returns (address hider, address seeker, uint256 stake, uint256 hideTime, uint256 seekTime, uint8 status, bool hiderRevealed)",
+    "function getGameCreator(uint256 gameId) external view returns (address)",
+    "function getGameJoiner(uint256 gameId) external view returns (address)",
+    "function getGameStake(uint256 gameId) external view returns (uint256)",
+    "function getGameStatus(uint256 gameId) external view returns (uint8)",
     "function getPlayerGames(address player) external view returns (uint256[] memory)"
 ];
 
@@ -39,17 +42,19 @@ app.get('/api/games/available', async (req, res) => {
         
         for (let i = 1; i <= counter; i++) {
             try {
-                const game = await contract.getGame(i);
-                if (game.status === 0 && game.seeker === ethers.constants.AddressZero) {
+                const [creator, joiner, stake, status] = await Promise.all([
+                    contract.getGameCreator(i),
+                    contract.getGameJoiner(i),
+                    contract.getGameStake(i),
+                    contract.getGameStatus(i)
+                ]);
+                if (status === 0 && joiner === ethers.constants.AddressZero) {
                     games.push({
                         id: i,
-                        hider: game.hider,
-                        seeker: game.seeker,
-                        stake: ethers.utils.formatEther(game.stake),
-                        hideTime: game.hideTime.toNumber(),
-                        seekTime: game.seekTime.toNumber(),
-                        status: game.status,
-                        hiderRevealed: game.hiderRevealed
+                        creator: creator,
+                        joiner: joiner,
+                        stake: ethers.utils.formatEther(stake),
+                        status: status
                     });
                 }
             } catch (e) {
@@ -71,17 +76,19 @@ app.get('/api/games/active', async (req, res) => {
         
         for (let i = 1; i <= counter; i++) {
             try {
-                const game = await contract.getGame(i);
-                if (game.status > 0 && game.status < 3) {
+                const [creator, joiner, stake, status] = await Promise.all([
+                    contract.getGameCreator(i),
+                    contract.getGameJoiner(i),
+                    contract.getGameStake(i),
+                    contract.getGameStatus(i)
+                ]);
+                if (status > 0 && status < 4) {
                     games.push({
                         id: i,
-                        hider: game.hider,
-                        seeker: game.seeker,
-                        stake: ethers.utils.formatEther(game.stake),
-                        hideTime: game.hideTime.toNumber(),
-                        seekTime: game.seekTime.toNumber(),
-                        status: game.status,
-                        hiderRevealed: game.hiderRevealed
+                        creator: creator,
+                        joiner: joiner,
+                        stake: ethers.utils.formatEther(stake),
+                        status: status
                     });
                 }
             } catch (e) {
@@ -104,16 +111,18 @@ app.get('/api/games/player/:address', async (req, res) => {
         
         for (const gameId of gameIds) {
             try {
-                const game = await contract.getGame(gameId);
+                const [creator, joiner, stake, status] = await Promise.all([
+                    contract.getGameCreator(gameId),
+                    contract.getGameJoiner(gameId),
+                    contract.getGameStake(gameId),
+                    contract.getGameStatus(gameId)
+                ]);
                 games.push({
                     id: gameId.toNumber(),
-                    hider: game.hider,
-                    seeker: game.seeker,
-                    stake: ethers.utils.formatEther(game.stake),
-                    hideTime: game.hideTime.toNumber(),
-                    seekTime: game.seekTime.toNumber(),
-                    status: game.status,
-                    hiderRevealed: game.hiderRevealed
+                    creator: creator,
+                    joiner: joiner,
+                    stake: ethers.utils.formatEther(stake),
+                    status: status
                 });
             } catch (e) {
                 // Game doesn't exist
@@ -130,19 +139,21 @@ app.get('/api/games/player/:address', async (req, res) => {
 app.get('/api/games/:gameId', async (req, res) => {
     try {
         const gameId = parseInt(req.params.gameId);
-        const game = await contract.getGame(gameId);
+        const [creator, joiner, stake, status] = await Promise.all([
+            contract.getGameCreator(gameId),
+            contract.getGameJoiner(gameId),
+            contract.getGameStake(gameId),
+            contract.getGameStatus(gameId)
+        ]);
         
         res.json({
             success: true,
             game: {
                 id: gameId,
-                hider: game.hider,
-                seeker: game.seeker,
-                stake: ethers.utils.formatEther(game.stake),
-                hideTime: game.hideTime.toNumber(),
-                seekTime: game.seekTime.toNumber(),
-                status: game.status,
-                hiderRevealed: game.hiderRevealed
+                creator: creator,
+                joiner: joiner,
+                stake: ethers.utils.formatEther(stake),
+                status: status
             }
         });
     } catch (error) {
@@ -159,10 +170,13 @@ app.get('/api/stats', async (req, res) => {
         
         for (let i = 1; i <= counter; i++) {
             try {
-                const game = await contract.getGame(i);
-                if (game.status > 0 && game.status < 3) {
+                const [status, stake] = await Promise.all([
+                    contract.getGameStatus(i),
+                    contract.getGameStake(i)
+                ]);
+                if (status > 0 && status < 4) {
                     activeCount++;
-                    totalStaked = totalStaked.add(game.stake);
+                    totalStaked = totalStaked.add(stake);
                 }
             } catch (e) {
                 // Game doesn't exist
