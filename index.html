@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hide & Seek - Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+    <div class="stars"></div>
+    <div class="stars2"></div>
+    <div class="stars3"></div>
+    
+    <div class="container">
+        <div class="game-logo">
+            <h1 class="glitch" data-text="HIDE & SEEK">HIDE & SEEK</h1>
+            <p class="subtitle">On-Chain Gaming Experience</p>
+        </div>
+        
+        <div class="login-card">
+            <div class="card-header">
+                <h2>Connect Wallet</h2>
+                <p>Connect with MetaMask to start playing</p>
+            </div>
+            
+            <div class="wallet-status" id="walletStatus">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span id="statusText">Not Connected</span>
+            </div>
+            
+            <button class="btn-primary" id="connectBtn">
+                <span class="btn-icon">🦊</span>
+                Connect MetaMask
+            </button>
+            
+            <div class="account-info" id="accountInfo" style="display: none;">
+                <div class="info-row">
+                    <span>Account:</span>
+                    <span id="accountAddress" class="address"></span>
+                </div>
+                <div class="info-row">
+                    <span>Network:</span>
+                    <span id="networkName" class="network"></span>
+                </div>
+                <div class="info-row">
+                    <span>Balance:</span>
+                    <span id="accountBalance" class="balance"></span>
+                </div>
+            </div>
+            
+            <button class="btn-secondary" id="playBtn" style="display: none;">
+                <span class="btn-icon">🎮</span>
+                Enter Game
+            </button>
+            
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+        
+        <div class="game-info">
+            <div class="info-card">
+                <h3>🎯 How to Play</h3>
+                <ul>
+                    <li>Create or join a game</li>
+                    <li>Hider: Choose a location and stake ETH</li>
+                    <li>Seeker: Find the location to win</li>
+                    <li>Winner takes all stakes!</li>
+                </ul>
+            </div>
+            
+            <div class="info-card">
+                <h3>⚡ Features</h3>
+                <ul>
+                    <li>Fully on-chain & transparent</li>
+                    <li>Escrow smart contract</li>
+                    <li>Base Network (Low fees)</li>
+                    <li>Real-time updates</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <script src="script.js"></script>
+    <script>
+        // Login page specific script
+        document.addEventListener('DOMContentLoaded', async () => {
+            const connectBtn = document.getElementById('connectBtn');
+            const playBtn = document.getElementById('playBtn');
+            const walletStatus = document.getElementById('walletStatus');
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const accountInfo = document.getElementById('accountInfo');
+            const accountAddress = document.getElementById('accountAddress');
+            const networkName = document.getElementById('networkName');
+            const accountBalance = document.getElementById('accountBalance');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Check if already connected
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts.length > 0) {
+                        await initWallet();
+                    }
+                } catch (error) {
+                    console.error('Error checking connection:', error);
+                }
+            }
+            
+            connectBtn.addEventListener('click', async () => {
+                try {
+                    errorMessage.textContent = '';
+                    await connectWallet();
+                    await initWallet();
+                } catch (error) {
+                    errorMessage.textContent = error.message || 'Failed to connect wallet';
+                    console.error('Connection error:', error);
+                }
+            });
+            
+            playBtn.addEventListener('click', () => {
+                window.location.href = 'game.html';
+            });
+            
+            async function initWallet() {
+                if (typeof window.ethereum === 'undefined') {
+                    errorMessage.textContent = 'MetaMask not installed. Please install MetaMask.';
+                    return;
+                }
+                
+                try {
+                    const provider = new ethers.providers.Web3Provider(window.ethereum);
+                    const signer = provider.getSigner();
+                    const address = await signer.getAddress();
+                    const network = await provider.getNetwork();
+                    const balance = await provider.getBalance(address);
+                    
+                    // Update UI
+                    statusIndicator.classList.add('connected');
+                    statusText.textContent = 'Connected';
+                    accountAddress.textContent = `${address.slice(0, 6)}...${address.slice(-4)}`;
+                    networkName.textContent = network.name.charAt(0).toUpperCase() + network.name.slice(1);
+                    accountBalance.textContent = ethers.utils.formatEther(balance).slice(0, 6) + ' ETH';
+                    
+                    accountInfo.style.display = 'block';
+                    playBtn.style.display = 'block';
+                    connectBtn.style.display = 'none';
+                    
+                    // Check if on Base network
+                    if (network.chainId !== 8453n && network.chainId !== 84532n) {
+                        errorMessage.textContent = 'Please switch to Base network (Chain ID: 8453)';
+                    }
+                } catch (error) {
+                    console.error('Init error:', error);
+                }
+            }
+            
+            // Listen for account changes
+            if (window.ethereum) {
+                window.ethereum.on('accountsChanged', () => {
+                    window.location.reload();
+                });
+                
+                window.ethereum.on('chainChanged', () => {
+                    window.location.reload();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+

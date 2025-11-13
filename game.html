@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hide & Seek - Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="game-page">
+    <div class="stars"></div>
+    <div class="stars2"></div>
+    <div class="stars3"></div>
+    
+    <header class="game-header">
+        <div class="header-left">
+            <h1 class="game-title">HIDE & SEEK</h1>
+            <div class="wallet-badge" id="walletBadge">
+                <span id="walletAddress">Not Connected</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="balance-display">
+                <span class="balance-label">Balance:</span>
+                <span class="balance-value" id="balanceValue">0 ETH</span>
+            </div>
+            <button class="btn-icon-only" id="refreshBtn" title="Refresh">🔄</button>
+        </div>
+    </header>
+    
+    <div class="game-container">
+        <div class="game-sidebar">
+            <div class="sidebar-section">
+                <h3>🎮 Quick Actions</h3>
+                <button class="btn-action" id="createGameBtn">
+                    <span>➕</span> Create Game
+                </button>
+                <button class="btn-action" id="joinGameBtn">
+                    <span>🔍</span> Join Game
+                </button>
+                <button class="btn-action" id="myGamesBtn">
+                    <span>📋</span> My Games
+                </button>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>📊 Game Stats</h3>
+                <div class="stat-item">
+                    <span>Active Games:</span>
+                    <span id="activeGamesCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Total Staked:</span>
+                    <span id="totalStaked">0 ETH</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-main">
+            <div class="game-tabs">
+                <button class="tab-btn active" data-tab="available">Available Games</button>
+                <button class="tab-btn" data-tab="active">Active Games</button>
+                <button class="tab-btn" data-tab="my-games">My Games</button>
+            </div>
+            
+            <div class="tab-content active" id="availableTab">
+                <div class="games-grid" id="availableGames">
+                    <div class="loading">Loading games...</div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="activeTab">
+                <div class="games-grid" id="activeGames">
+                    <div class="loading">Loading active games...</div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="myGamesTab">
+                <div class="games-grid" id="myGames">
+                    <div class="loading">Loading your games...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Game Modal -->
+    <div class="modal" id="gameModal">
+        <div class="modal-content">
+            <span class="close" id="closeModal">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+    
+    <!-- Create Game Modal -->
+    <div class="modal" id="createModal">
+        <div class="modal-content">
+            <h2>Create New Game</h2>
+            <div class="form-group">
+                <label>Stake Amount (ETH)</label>
+                <input type="number" id="stakeAmount" step="0.01" min="0.01" value="0.01" placeholder="0.01">
+                <small>Minimum: 0.01 ETH</small>
+            </div>
+            <button class="btn-primary" id="confirmCreateBtn">Create Game</button>
+            <button class="btn-secondary" id="cancelCreateBtn">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Join Game Modal -->
+    <div class="modal" id="joinModal">
+        <div class="modal-content">
+            <h2>Join Game</h2>
+            <div class="form-group">
+                <label>Game ID</label>
+                <input type="number" id="joinGameId" placeholder="Enter Game ID">
+            </div>
+            <div class="form-group">
+                <label>Stake Amount (ETH)</label>
+                <input type="number" id="joinStakeAmount" step="0.01" min="0.01" placeholder="Match game stake">
+            </div>
+            <button class="btn-primary" id="confirmJoinBtn">Join Game</button>
+            <button class="btn-secondary" id="cancelJoinBtn">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Hide Location Modal -->
+    <div class="modal" id="hideModal">
+        <div class="modal-content">
+            <h2>Set Hide Location</h2>
+            <div class="form-group">
+                <label>Location (Number 1-100)</label>
+                <input type="number" id="hideLocation" min="1" max="100" placeholder="1-100">
+            </div>
+            <div class="form-group">
+                <label>Secret Key</label>
+                <input type="text" id="hideSecret" placeholder="Any secret phrase">
+            </div>
+            <button class="btn-primary" id="confirmHideBtn">Set Location</button>
+            <button class="btn-secondary" id="cancelHideBtn">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Reveal Location Modal -->
+    <div class="modal" id="revealModal">
+        <div class="modal-content">
+            <h2>Reveal Location</h2>
+            <div class="form-group">
+                <label>Location (Number 1-100)</label>
+                <input type="number" id="revealLocation" min="1" max="100" placeholder="1-100">
+            </div>
+            <div class="form-group">
+                <label>Secret Key</label>
+                <input type="text" id="revealSecret" placeholder="Enter your secret">
+            </div>
+            <button class="btn-primary" id="confirmRevealBtn">Reveal Location</button>
+            <button class="btn-secondary" id="cancelRevealBtn">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Seek Location Modal -->
+    <div class="modal" id="seekModal">
+        <div class="modal-content">
+            <h2>Claim Found</h2>
+            <div class="form-group">
+                <label>Location (Number 1-100)</label>
+                <input type="number" id="seekLocation" min="1" max="100" placeholder="1-100">
+            </div>
+            <button class="btn-primary" id="confirmSeekBtn">Claim Found</button>
+            <button class="btn-secondary" id="cancelSeekBtn">Cancel</button>
+        </div>
+    </div>
+    
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <script src="script.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
+
