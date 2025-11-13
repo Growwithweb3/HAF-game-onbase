@@ -164,34 +164,42 @@ contract CoinHideGame {
         require(msg.sender == game.currentHider, "Not your turn to hide");
         require(block.timestamp <= game.hideStartTime + HIDE_DURATION, "Hiding time expired");
         
-        Round storage round = rounds[gameId][game.currentRound];
-        PlayerHistory storage history = playerHistory[gameId][msg.sender];
+        // Check if box was used before
+        checkBoxAvailable(gameId, msg.sender, game.currentRound, box);
         
-        // Check if this box was used before (only if not first round)
-        if (game.currentRound > 1) {
-            for (uint i = 0; i < history.usedBoxes.length; i++) {
-                require(history.usedBoxes[i] != box, "Cannot hide in same box as previous round");
-            }
-        }
-        
-        if (game.creatorHiding) {
-            require(round.creatorHideBox == 0, "Already hid coin");
-            round.creatorHideBox = box;
-            game.currentHideBox = box;
-        } else {
-            require(round.joinerHideBox == 0, "Already hid coin");
-            round.joinerHideBox = box;
-            game.currentHideBox = box;
-        }
+        // Set hide box
+        setHideBox(gameId, game.currentRound, game.creatorHiding, box);
         
         // Add to history
-        history.usedBoxes.push(box);
+        playerHistory[gameId][msg.sender].usedBoxes.push(box);
         
         emit CoinHidden(gameId, game.currentRound, msg.sender, box);
         
         // Move to finding phase
         game.status = GameStatus.Finding;
         game.findStartTime = block.timestamp;
+        game.currentHideBox = box;
+    }
+    
+    function checkBoxAvailable(uint256 gameId, address player, uint256 currentRound, uint8 box) internal view {
+        if (currentRound > 1) {
+            PlayerHistory storage history = playerHistory[gameId][player];
+            for (uint i = 0; i < history.usedBoxes.length; i++) {
+                require(history.usedBoxes[i] != box, "Cannot hide in same box as previous round");
+            }
+        }
+    }
+    
+    function setHideBox(uint256 gameId, uint256 roundNum, bool creatorHiding, uint8 box) internal {
+        Round storage round = rounds[gameId][roundNum];
+        
+        if (creatorHiding) {
+            require(round.creatorHideBox == 0, "Already hid coin");
+            round.creatorHideBox = box;
+        } else {
+            require(round.joinerHideBox == 0, "Already hid coin");
+            round.joinerHideBox = box;
+        }
     }
     
     function findCoin(uint256 gameId, uint8 box) external validGame(gameId) {
@@ -202,16 +210,25 @@ contract CoinHideGame {
         require(msg.sender == game.currentSeeker, "Not your turn to find");
         require(block.timestamp <= game.findStartTime + FIND_DURATION, "Finding time expired");
         
-        Round storage round = rounds[gameId][game.currentRound];
         bool found = (box == game.currentHideBox);
         
-        if (game.creatorHiding) {
+        // Record find attempt and update score
+        recordFindAttempt(gameId, game.currentRound, game.creatorHiding, box, found);
+        
+        emit CoinFound(gameId, game.currentRound, msg.sender, box, found);
+        
+        // Check if round is complete
+        checkRoundComplete(gameId);
+    }
+    
+    function recordFindAttempt(uint256 gameId, uint256 roundNum, bool creatorHiding, uint8 box, bool found) internal {
+        Round storage round = rounds[gameId][roundNum];
+        
+        if (creatorHiding) {
             // Creator is hiding, joiner is seeking
             require(round.joinerFindBox == 0, "Already tried to find");
             round.joinerFindBox = box;
             round.joinerFound = found;
-            // If joiner found creator's coin → joiner wins 1 point
-            // If joiner didn't find creator's coin → creator wins 1 point
             if (found) {
                 round.joinerScore++;
             } else {
@@ -222,19 +239,12 @@ contract CoinHideGame {
             require(round.creatorFindBox == 0, "Already tried to find");
             round.creatorFindBox = box;
             round.creatorFound = found;
-            // If creator found joiner's coin → creator wins 1 point
-            // If creator didn't find joiner's coin → joiner wins 1 point
             if (found) {
                 round.creatorScore++;
             } else {
                 round.joinerScore++;
             }
         }
-        
-        emit CoinFound(gameId, game.currentRound, msg.sender, box, found);
-        
-        // Check if round is complete
-        checkRoundComplete(gameId);
     }
     
     function checkRoundComplete(uint256 gameId) internal {
@@ -290,58 +300,85 @@ contract CoinHideGame {
         emit GameFinished(gameId, winner, reward);
     }
     
-    // Simplified getters to avoid stack too deep
-    function getGameBasic(uint256 gameId) external view returns (
-        address creator,
-        address joiner,
-        uint256 stake,
-        uint256 currentRound,
-        GameStatus status
-    ) {
-        Game memory game = games[gameId];
-        return (game.creator, game.joiner, game.stake, game.currentRound, game.status);
+    // Individual getters to avoid stack too deep
+    function getGameCreator(uint256 gameId) external view returns (address) {
+        return games[gameId].creator;
     }
     
-    function getGameReady(uint256 gameId) external view returns (bool creatorReady, bool joinerReady) {
-        Game memory game = games[gameId];
-        return (game.creatorReady, game.joinerReady);
+    function getGameJoiner(uint256 gameId) external view returns (address) {
+        return games[gameId].joiner;
     }
     
-    function getGameTurn(uint256 gameId) external view returns (
-        address currentHider,
-        address currentSeeker,
-        uint8 currentHideBox,
-        bool creatorHiding
-    ) {
-        Game memory game = games[gameId];
-        return (game.currentHider, game.currentSeeker, game.currentHideBox, game.creatorHiding);
+    function getGameStake(uint256 gameId) external view returns (uint256) {
+        return games[gameId].stake;
     }
     
-    function getRoundScores(uint256 gameId, uint256 roundNum) external view returns (
-        uint256 creatorScore,
-        uint256 joinerScore,
-        bool completed
-    ) {
-        Round memory round = rounds[gameId][roundNum];
-        return (round.creatorScore, round.joinerScore, round.completed);
+    function getGameCurrentRound(uint256 gameId) external view returns (uint256) {
+        return games[gameId].currentRound;
     }
     
-    function getRoundHides(uint256 gameId, uint256 roundNum) external view returns (
-        uint8 creatorHideBox,
-        uint8 joinerHideBox
-    ) {
-        Round memory round = rounds[gameId][roundNum];
-        return (round.creatorHideBox, round.joinerHideBox);
+    function getGameStatus(uint256 gameId) external view returns (GameStatus) {
+        return games[gameId].status;
     }
     
-    function getRoundFinds(uint256 gameId, uint256 roundNum) external view returns (
-        uint8 creatorFindBox,
-        uint8 joinerFindBox,
-        bool creatorFound,
-        bool joinerFound
-    ) {
-        Round memory round = rounds[gameId][roundNum];
-        return (round.creatorFindBox, round.joinerFindBox, round.creatorFound, round.joinerFound);
+    function getGameCreatorReady(uint256 gameId) external view returns (bool) {
+        return games[gameId].creatorReady;
+    }
+    
+    function getGameJoinerReady(uint256 gameId) external view returns (bool) {
+        return games[gameId].joinerReady;
+    }
+    
+    function getGameCurrentHider(uint256 gameId) external view returns (address) {
+        return games[gameId].currentHider;
+    }
+    
+    function getGameCurrentSeeker(uint256 gameId) external view returns (address) {
+        return games[gameId].currentSeeker;
+    }
+    
+    function getGameCurrentHideBox(uint256 gameId) external view returns (uint8) {
+        return games[gameId].currentHideBox;
+    }
+    
+    function getGameCreatorHiding(uint256 gameId) external view returns (bool) {
+        return games[gameId].creatorHiding;
+    }
+    
+    function getRoundCreatorScore(uint256 gameId, uint256 roundNum) external view returns (uint256) {
+        return rounds[gameId][roundNum].creatorScore;
+    }
+    
+    function getRoundJoinerScore(uint256 gameId, uint256 roundNum) external view returns (uint256) {
+        return rounds[gameId][roundNum].joinerScore;
+    }
+    
+    function getRoundCompleted(uint256 gameId, uint256 roundNum) external view returns (bool) {
+        return rounds[gameId][roundNum].completed;
+    }
+    
+    function getRoundCreatorHideBox(uint256 gameId, uint256 roundNum) external view returns (uint8) {
+        return rounds[gameId][roundNum].creatorHideBox;
+    }
+    
+    function getRoundJoinerHideBox(uint256 gameId, uint256 roundNum) external view returns (uint8) {
+        return rounds[gameId][roundNum].joinerHideBox;
+    }
+    
+    function getRoundCreatorFindBox(uint256 gameId, uint256 roundNum) external view returns (uint8) {
+        return rounds[gameId][roundNum].creatorFindBox;
+    }
+    
+    function getRoundJoinerFindBox(uint256 gameId, uint256 roundNum) external view returns (uint8) {
+        return rounds[gameId][roundNum].joinerFindBox;
+    }
+    
+    function getRoundCreatorFound(uint256 gameId, uint256 roundNum) external view returns (bool) {
+        return rounds[gameId][roundNum].creatorFound;
+    }
+    
+    function getRoundJoinerFound(uint256 gameId, uint256 roundNum) external view returns (bool) {
+        return rounds[gameId][roundNum].joinerFound;
     }
     
     function getPlayerHistory(uint256 gameId, address player) external view returns (uint8[] memory) {

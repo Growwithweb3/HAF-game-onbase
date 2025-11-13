@@ -74,27 +74,39 @@ async function handleBoxClick(boxNum) {
     }
 }
 
-// Get game data (using split getters to avoid stack too deep)
+// Get game data (using individual getters to avoid stack too deep)
 async function getGame(gameId) {
     try {
-        const [basic, ready, turn] = await Promise.all([
-            contract.getGameBasic(gameId),
-            contract.getGameReady(gameId),
-            contract.getGameTurn(gameId)
+        const [
+            creator, joiner, stake, currentRound, status,
+            creatorReady, joinerReady,
+            currentHider, currentSeeker, currentHideBox, creatorHiding
+        ] = await Promise.all([
+            contract.getGameCreator(gameId),
+            contract.getGameJoiner(gameId),
+            contract.getGameStake(gameId),
+            contract.getGameCurrentRound(gameId),
+            contract.getGameStatus(gameId),
+            contract.getGameCreatorReady(gameId),
+            contract.getGameJoinerReady(gameId),
+            contract.getGameCurrentHider(gameId),
+            contract.getGameCurrentSeeker(gameId),
+            contract.getGameCurrentHideBox(gameId),
+            contract.getGameCreatorHiding(gameId)
         ]);
         
         return {
-            creator: basic.creator,
-            joiner: basic.joiner,
-            stake: ethers.utils.formatEther(basic.stake),
-            currentRound: basic.currentRound.toNumber(),
-            status: basic.status,
-            creatorReady: ready.creatorReady,
-            joinerReady: ready.joinerReady,
-            currentHider: turn.currentHider,
-            currentSeeker: turn.currentSeeker,
-            currentHideBox: turn.currentHideBox,
-            creatorHiding: turn.creatorHiding
+            creator,
+            joiner,
+            stake: ethers.utils.formatEther(stake),
+            currentRound: currentRound.toNumber(),
+            status,
+            creatorReady,
+            joinerReady,
+            currentHider,
+            currentSeeker,
+            currentHideBox,
+            creatorHiding
         };
     } catch (error) {
         throw new Error('Failed to get game: ' + error.message);
@@ -251,25 +263,36 @@ async function updateGameState() {
     }
 }
 
-// Get round data (using split getters)
+// Get round data (using individual getters)
 async function getRound(gameId, roundNum) {
     try {
-        const [scores, hides, finds] = await Promise.all([
-            contract.getRoundScores(gameId, roundNum),
-            contract.getRoundHides(gameId, roundNum),
-            contract.getRoundFinds(gameId, roundNum)
+        const [
+            creatorScore, joinerScore, completed,
+            creatorHideBox, joinerHideBox,
+            creatorFindBox, joinerFindBox,
+            creatorFound, joinerFound
+        ] = await Promise.all([
+            contract.getRoundCreatorScore(gameId, roundNum),
+            contract.getRoundJoinerScore(gameId, roundNum),
+            contract.getRoundCompleted(gameId, roundNum),
+            contract.getRoundCreatorHideBox(gameId, roundNum),
+            contract.getRoundJoinerHideBox(gameId, roundNum),
+            contract.getRoundCreatorFindBox(gameId, roundNum),
+            contract.getRoundJoinerFindBox(gameId, roundNum),
+            contract.getRoundCreatorFound(gameId, roundNum),
+            contract.getRoundJoinerFound(gameId, roundNum)
         ]);
         
         return {
-            creatorHideBox: hides.creatorHideBox,
-            joinerHideBox: hides.joinerHideBox,
-            creatorFindBox: finds.creatorFindBox,
-            joinerFindBox: finds.joinerFindBox,
-            creatorFound: finds.creatorFound,
-            joinerFound: finds.joinerFound,
-            creatorScore: scores.creatorScore.toNumber(),
-            joinerScore: scores.joinerScore.toNumber(),
-            completed: scores.completed
+            creatorHideBox,
+            joinerHideBox,
+            creatorFindBox,
+            joinerFindBox,
+            creatorFound,
+            joinerFound,
+            creatorScore: creatorScore.toNumber(),
+            joinerScore: joinerScore.toNumber(),
+            completed
         };
     } catch (error) {
         return {
