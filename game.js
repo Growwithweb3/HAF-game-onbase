@@ -286,7 +286,7 @@ function createGameCard(game) {
             ` : ''}
             <div class="game-info-item">
                 <span>Stake:</span>
-                <span class="game-stake">${parseFloat(game.stake).toFixed(4)} ETH</span>
+                <span class="game-stake">${formatEth(game.stake)}</span>
             </div>
             ${isMyGame ? `
             <div class="game-actions">
@@ -339,7 +339,7 @@ function getGameActions(game) {
 async function updateBalance() {
     try {
         const balance = await getBalance(userAddress);
-        document.getElementById('balanceValue').textContent = parseFloat(balance).toFixed(4) + ' ETH';
+        document.getElementById('balanceValue').textContent = formatEth(balance);
         document.getElementById('walletAddress').textContent = formatAddress(userAddress);
     } catch (error) {
         console.error('Error updating balance:', error);
@@ -347,12 +347,36 @@ async function updateBalance() {
 }
 
 // Update Stats
-function updateStats() {
+async function updateStats() {
     const activeCount = allGames.filter(g => g.status > 0 && g.status < 3).length;
     const totalStaked = allGames.reduce((sum, g) => sum + parseFloat(g.stake || 0), 0);
     
     document.getElementById('activeGamesCount').textContent = activeCount;
-    document.getElementById('totalStaked').textContent = totalStaked.toFixed(4) + ' ETH';
+    document.getElementById('totalStaked').textContent = formatEth(totalStaked);
+    
+    // Update contract balance
+    try {
+        const contractBalance = await getContractBalance();
+        document.getElementById('contractBalance').textContent = formatEth(contractBalance);
+    } catch (error) {
+        document.getElementById('contractBalance').textContent = 'Error';
+        console.error('Error getting contract balance:', error);
+    }
+}
+
+// Check contract balance manually
+window.checkContractBalance = async function() {
+    try {
+        const balanceElement = document.getElementById('contractBalance');
+        balanceElement.textContent = 'Loading...';
+        const balance = await getContractBalance();
+        balanceElement.textContent = formatEth(balance);
+        const contractAddr = typeof CONTRACT_ADDRESS !== 'undefined' ? CONTRACT_ADDRESS : '0x8F4D6D46E4977bbeFFa2D73544fe6f935a3a4859';
+        showSuccess(`Contract Balance: ${formatEth(balance)}\n\nContract Address:\n${contractAddr}\n\nView on BaseScan:\nhttps://basescan.org/address/${contractAddr}`);
+    } catch (error) {
+        document.getElementById('contractBalance').textContent = 'Error';
+        showError('Failed to check contract balance: ' + error.message);
+    }
 }
 
 // Modal Functions
@@ -596,7 +620,7 @@ async function loadGameDetails(gameId) {
             </div>
             <div class="game-info-item">
                 <span>Stake:</span>
-                <span class="game-stake">${parseFloat(game.stake).toFixed(4)} ETH</span>
+                <span class="game-stake">${formatEth(game.stake)}</span>
             </div>
             <div class="game-info-item">
                 <span>Hide Time:</span>
@@ -627,6 +651,17 @@ async function loadGameDetails(gameId) {
 }
 
 // Utility Functions
+function formatEth(amount) {
+    const num = parseFloat(amount);
+    if (num === 0) return '0 ETH';
+    if (num < 0.0001) {
+        // For very small amounts, show more decimals
+        return num.toFixed(8).replace(/\.?0+$/, '') + ' ETH';
+    }
+    // For larger amounts, show 4-6 decimals
+    return num.toFixed(6).replace(/\.?0+$/, '') + ' ETH';
+}
+
 function showError(message) {
     // Create or update error notification
     let errorDiv = document.getElementById('errorNotification');

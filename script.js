@@ -660,6 +660,15 @@ async function getBalance(address) {
     }
 }
 
+async function getContractBalance() {
+    try {
+        const balance = await provider.getBalance(CONTRACT_ADDRESS);
+        return ethers.utils.formatEther(balance);
+    } catch (error) {
+        throw new Error('Failed to get contract balance: ' + error.message);
+    }
+}
+
 // Utility Functions
 function formatAddress(address) {
     if (!address) return 'N/A';
