@@ -39,7 +39,7 @@ contract CoinHideGame {
     
     mapping(uint256 => Game) public games;
     mapping(uint256 => mapping(uint256 => Round)) public rounds; // gameId => round => Round
-    mapping(uint256 => mapping(address => PlayerHistory)) public playerHistory; // gameId => player => history
+    mapping(uint256 => mapping(address => PlayerHistory)) private playerHistory; // gameId => player => history
     mapping(address => uint256[]) public playerGames;
     
     uint256 public gameCounter;
