@@ -5,6 +5,7 @@ let myGameIds = [];
 
 const ALLOWED_STAKES = (window.ALLOWED_STAKES || ['0.00001', '0.0001', '0.001']);
 const ACCESS_CODE_LENGTH = 6;
+const BACKEND_URL = 'https://haf-game-onbase-production.up.railway.app';
 
 function generateAccessCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -16,7 +17,7 @@ function generateAccessCode() {
 }
 
 async function saveGameAccessCode(gameId, code) {
-    const response = await fetch(`/api/games/${gameId}/code`, {
+    const response = await fetch(`${BACKEND_URL}/api/games/${gameId}/code`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -31,7 +32,7 @@ async function saveGameAccessCode(gameId, code) {
 }
 
 async function verifyGameAccessCode(gameId, code) {
-    const response = await fetch(`/api/games/${gameId}/verify-code`, {
+    const response = await fetch(`${BACKEND_URL}/api/games/${gameId}/verify-code`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
