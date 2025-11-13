@@ -3,8 +3,54 @@ let currentGameId = null;
 let allGames = [];
 let myGameIds = [];
 
-// Initialize game page
-document.addEventListener('DOMContentLoaded', async () => {
+const ALLOWED_STAKES = (window.ALLOWED_STAKES || ['0.00001', '0.0001', '0.001']);
+const ACCESS_CODE_LENGTH = 6;
+
+function generateAccessCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < ACCESS_CODE_LENGTH; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+}
+
+async function saveGameAccessCode(gameId, code) {
+    const response = await fetch(`/api/games/${gameId}/code`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ code })
+    });
+
+    if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || 'Failed to save access code');
+    }
+}
+
+async function verifyGameAccessCode(gameId, code) {
+    const response = await fetch(`/api/games/${gameId}/verify-code`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ code })
+    });
+
+    if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || 'Failed to verify access code');
+    }
+
+    const payload = await response.json();
+    if (!payload.success || !payload.valid) {
+        throw new Error(payload.message || 'Invalid access code');
+    }
+}
+
+async function initializeGamePage() {
     try {
         await initWeb3();
         await loadGameData();
@@ -15,7 +61,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Initialization error:', error);
         showError('Failed to initialize. Please refresh the page.');
     }
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeGamePage);
+} else {
+    initializeGamePage();
+}
 
 // Setup Event Listeners
 function setupEventListeners() {
@@ -71,7 +123,10 @@ function setupTabs() {
             contents.forEach(c => c.classList.remove('active'));
             
             tab.classList.add('active');
-            document.getElementById(targetTab + 'Tab').classList.add('active');
+            const target = document.getElementById(targetTab + 'Tab');
+            if (target) {
+                target.classList.add('active');
+            }
         });
     });
 }
@@ -89,7 +144,10 @@ function switchTab(tabName) {
         content.classList.remove('active');
     });
     
-    document.getElementById(tabName + 'Tab').classList.add('active');
+    const target = document.getElementById(tabName + 'Tab');
+    if (target) {
+        target.classList.add('active');
+    }
 }
 
 // Load Game Data
@@ -301,7 +359,7 @@ function closeModal(modalId) {
 }
 
 function openCreateModal() {
-    document.getElementById('stakeAmount').value = '0.01';
+    document.getElementById('stakeAmount').value = ALLOWED_STAKES[0];
     openModal('createModal');
 }
 
@@ -309,6 +367,7 @@ function openJoinModal(gameId = null) {
     if (gameId) {
         document.getElementById('joinGameId').value = gameId;
     }
+    document.getElementById('joinStakeAmount').value = ALLOWED_STAKES[0];
     openModal('joinModal');
 }
 
@@ -337,16 +396,19 @@ function openGameModal(gameId) {
 // Handle Actions
 async function handleCreateGame() {
     try {
-        const stakeAmount = parseFloat(document.getElementById('stakeAmount').value);
-        if (stakeAmount < 0.01) {
-            showError('Minimum stake is 0.01 ETH');
+        const stakeValue = document.getElementById('stakeAmount').value;
+        if (!ALLOWED_STAKES.includes(stakeValue)) {
+            showError('Invalid stake amount');
             return;
         }
-        
+        const stakeAmount = parseFloat(stakeValue);
+
         showLoading('Creating game...');
         const gameId = await createGame(stakeAmount);
+        const accessCode = generateAccessCode();
+        await saveGameAccessCode(gameId, accessCode);
         closeModal('createModal');
-        showSuccess(`Game created! Game ID: ${gameId}`);
+        showSuccess(`Game created! Game ID: ${gameId}\nAccess Code: ${accessCode}`);
         await loadGameData();
     } catch (error) {
         showError(error.message);
@@ -358,13 +420,24 @@ async function handleCreateGame() {
 async function handleJoinGame() {
     try {
         const gameId = parseInt(document.getElementById('joinGameId').value);
-        const stakeAmount = parseFloat(document.getElementById('joinStakeAmount').value);
-        
-        if (!gameId || stakeAmount < 0.01) {
+        const stakeValue = document.getElementById('joinStakeAmount').value;
+        const accessCodeInput = document.getElementById('joinGameCode').value.trim().toUpperCase();
+
+        if (!gameId || !ALLOWED_STAKES.includes(stakeValue)) {
             showError('Invalid game ID or stake amount');
             return;
         }
-        
+
+        if (!accessCodeInput) {
+            showError('Access code is required');
+            return;
+        }
+
+        const stakeAmount = parseFloat(stakeValue);
+
+        showLoading('Verifying access code...');
+        await verifyGameAccessCode(gameId, accessCodeInput);
+
         showLoading('Joining game...');
         await joinGame(gameId, stakeAmount);
         closeModal('joinModal');

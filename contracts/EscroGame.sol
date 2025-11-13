@@ -23,7 +23,7 @@ contract EscroGame {
     uint256 public gameCounter;
     uint256 public constant HIDE_DURATION = 5 minutes;
     uint256 public constant SEEK_DURATION = 10 minutes;
-    uint256 public constant MIN_STAKE = 0.01 ether;
+    uint256 public constant MIN_STAKE = 0.00001 ether;
     
     event GameCreated(uint256 indexed gameId, address indexed hider, uint256 stake);
     event SeekerJoined(uint256 indexed gameId, address indexed seeker);

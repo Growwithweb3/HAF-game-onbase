@@ -21,36 +21,6 @@ A fully transparent, on-chain hide and seek game built on Base blockchain with e
 6. **Claim**: Seeker claims if they found the correct location
 7. **Winner**: Takes all staked ETH
 
-## 🚀 Quick Start (Free Deployment)
-
-**Want to deploy for FREE?** See our deployment guides:
-- **[DEPLOY_QUICK.md](DEPLOY_QUICK.md)** - 3-step deployment (5 minutes)
-- **[DEPLOY_FREE.md](DEPLOY_FREE.md)** - Complete free deployment guide
-- **[GET_FREE_ETH.md](GET_FREE_ETH.md)** - How to get free testnet ETH
-
-### Quick Deploy (Recommended)
-
-1. **Push to GitHub:**
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin https://github.com/YOUR_USERNAME/hide-seek-game.git
-   git push -u origin main
-   ```
-
-2. **Deploy to Vercel (FREE):**
-   - Go to [vercel.com](https://vercel.com)
-   - Sign up with GitHub
-   - Import repository → Deploy
-   - Done! You get a free URL
-
-3. **Deploy Contract (FREE for testnet):**
-   - Get free testnet ETH: [Base Sepolia Faucet](https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet)
-   - Deploy: `npx hardhat run scripts/deploy.js --network baseSepolia`
-   - Update `CONTRACT_ADDRESS` in `script.js`
-
-**Total cost: $0 for testnet, ~$0.50 for mainnet!**
 
 ## Local Development
 

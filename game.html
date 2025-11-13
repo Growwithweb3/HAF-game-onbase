@@ -96,8 +96,12 @@
             <h2>Create New Game</h2>
             <div class="form-group">
                 <label>Stake Amount (ETH)</label>
-                <input type="number" id="stakeAmount" step="0.01" min="0.01" value="0.01" placeholder="0.01">
-                <small>Minimum: 0.01 ETH</small>
+                <select id="stakeAmount">
+                    <option value="0.00001">0.00001</option>
+                    <option value="0.0001">0.0001</option>
+                    <option value="0.001">0.001</option>
+                </select>
+                <small>Choose stake amount</small>
             </div>
             <button class="btn-primary" id="confirmCreateBtn">Create Game</button>
             <button class="btn-secondary" id="cancelCreateBtn">Cancel</button>
@@ -114,7 +118,17 @@
             </div>
             <div class="form-group">
                 <label>Stake Amount (ETH)</label>
-                <input type="number" id="joinStakeAmount" step="0.01" min="0.01" placeholder="Match game stake">
+                <select id="joinStakeAmount">
+                    <option value="0.00001">0.00001</option>
+                    <option value="0.0001">0.0001</option>
+                    <option value="0.001">0.001</option>
+                </select>
+                <small>Match the creator's stake</small>
+            </div>
+            <div class="form-group">
+                <label>Access Code</label>
+                <input type="text" id="joinGameCode" placeholder="Enter one-time code">
+                <small>Ask the creator for the access code</small>
             </div>
             <button class="btn-primary" id="confirmJoinBtn">Join Game</button>
             <button class="btn-secondary" id="cancelJoinBtn">Cancel</button>
@@ -168,9 +182,57 @@
         </div>
     </div>
     
-    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
-    <script src="script.js"></script>
-    <script src="game.js"></script>
+    <script>
+        (function () {
+            const ethersSources = [
+                'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js',
+                'https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js',
+                'https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js'
+            ];
+
+            function loadScript(src) {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.async = false;
+                    script.onload = () => resolve();
+                    script.onerror = () => reject(new Error('Failed to load script: ' + src));
+                    document.head.appendChild(script);
+                });
+            }
+
+            function loadEthers(index) {
+                if (index >= ethersSources.length) {
+                    return Promise.reject(new Error('Unable to load ethers.js from any source'));
+                }
+
+                const src = ethersSources[index];
+                return loadScript(src)
+                    .then(() => {
+                        if (typeof window.ethers !== 'undefined') {
+                            return;
+                        }
+                        console.warn(`Loaded ${src} but window.ethers is undefined. Trying next source.`);
+                        return loadEthers(index + 1);
+                    })
+                    .catch((error) => {
+                        console.warn(error.message);
+                        return loadEthers(index + 1);
+                    });
+            }
+
+            loadEthers(0)
+                .then(() => loadScript('script.js'))
+                .then(() => loadScript('game.js'))
+                .catch((error) => {
+                    console.error('Failed to initialize game scripts:', error);
+                    const warning = document.createElement('div');
+                    warning.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); padding:16px 24px; background:rgba(255,51,102,0.9); color:#fff; border-radius:10px; z-index:5000; font-weight:600;';
+                    warning.textContent = 'Failed to load game scripts. Please check your internet connection.';
+                    document.body.appendChild(warning);
+                });
+        })();
+    </script>
 </body>
 </html>
 

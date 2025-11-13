@@ -79,93 +79,171 @@
         </div>
     </div>
     
-    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
-    <script src="script.js"></script>
     <script>
-        // Login page specific script
-        document.addEventListener('DOMContentLoaded', async () => {
-            const connectBtn = document.getElementById('connectBtn');
-            const playBtn = document.getElementById('playBtn');
-            const walletStatus = document.getElementById('walletStatus');
-            const statusIndicator = document.getElementById('statusIndicator');
-            const statusText = document.getElementById('statusText');
-            const accountInfo = document.getElementById('accountInfo');
-            const accountAddress = document.getElementById('accountAddress');
-            const networkName = document.getElementById('networkName');
-            const accountBalance = document.getElementById('accountBalance');
-            const errorMessage = document.getElementById('errorMessage');
-            
-            // Check if already connected
-            if (typeof window.ethereum !== 'undefined') {
-                try {
-                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                    if (accounts.length > 0) {
-                        await initWallet();
-                    }
-                } catch (error) {
-                    console.error('Error checking connection:', error);
-                }
-            }
-            
-            connectBtn.addEventListener('click', async () => {
-                try {
-                    errorMessage.textContent = '';
-                    await connectWallet();
-                    await initWallet();
-                } catch (error) {
-                    errorMessage.textContent = error.message || 'Failed to connect wallet';
-                    console.error('Connection error:', error);
-                }
-            });
-            
-            playBtn.addEventListener('click', () => {
-                window.location.href = 'game.html';
-            });
-            
-            async function initWallet() {
-                if (typeof window.ethereum === 'undefined') {
-                    errorMessage.textContent = 'MetaMask not installed. Please install MetaMask.';
-                    return;
-                }
-                
-                try {
-                    const provider = new ethers.providers.Web3Provider(window.ethereum);
-                    const signer = provider.getSigner();
-                    const address = await signer.getAddress();
-                    const network = await provider.getNetwork();
-                    const balance = await provider.getBalance(address);
-                    
-                    // Update UI
-                    statusIndicator.classList.add('connected');
-                    statusText.textContent = 'Connected';
-                    accountAddress.textContent = `${address.slice(0, 6)}...${address.slice(-4)}`;
-                    networkName.textContent = network.name.charAt(0).toUpperCase() + network.name.slice(1);
-                    accountBalance.textContent = ethers.utils.formatEther(balance).slice(0, 6) + ' ETH';
-                    
-                    accountInfo.style.display = 'block';
-                    playBtn.style.display = 'block';
-                    connectBtn.style.display = 'none';
-                    
-                    // Check if on Base network
-                    if (network.chainId !== 8453n && network.chainId !== 84532n) {
-                        errorMessage.textContent = 'Please switch to Base network (Chain ID: 8453)';
-                    }
-                } catch (error) {
-                    console.error('Init error:', error);
-                }
-            }
-            
-            // Listen for account changes
-            if (window.ethereum) {
-                window.ethereum.on('accountsChanged', () => {
-                    window.location.reload();
-                });
-                
-                window.ethereum.on('chainChanged', () => {
-                    window.location.reload();
+        (function () {
+            const ethersSources = [
+                'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js',
+                'https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js',
+                'https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js'
+            ];
+
+            function loadScript(src) {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.async = false;
+                    script.onload = () => resolve();
+                    script.onerror = () => reject(new Error('Failed to load script: ' + src));
+                    document.head.appendChild(script);
                 });
             }
-        });
+
+            function loadEthers(index) {
+                if (index >= ethersSources.length) {
+                    return Promise.reject(new Error('Unable to load ethers.js from any source'));
+                }
+
+                const src = ethersSources[index];
+                return loadScript(src)
+                    .then(() => {
+                        if (typeof window.ethers !== 'undefined') {
+                            return;
+                        }
+                        console.warn(`Loaded ${src} but window.ethers is undefined. Trying next source.`);
+                        return loadEthers(index + 1);
+                    })
+                    .catch((error) => {
+                        console.warn(error.message);
+                        return loadEthers(index + 1);
+                    });
+            }
+
+            window.appScriptsReady = loadEthers(0)
+                .then(() => loadScript('script.js'))
+                .catch((error) => {
+                    console.error('Failed to initialize scripts:', error);
+                    throw error;
+                });
+        })();
+    </script>
+    <script>
+        window.appScriptsReady
+            .then(() => {
+                const startLogin = () => {
+                    const connectBtn = document.getElementById('connectBtn');
+                    if (!connectBtn) {
+                        return;
+                    }
+
+                    const playBtn = document.getElementById('playBtn');
+                    const walletStatus = document.getElementById('walletStatus');
+                    const statusIndicator = document.getElementById('statusIndicator');
+                    const statusText = document.getElementById('statusText');
+                    const accountInfo = document.getElementById('accountInfo');
+                    const accountAddress = document.getElementById('accountAddress');
+                    const networkName = document.getElementById('networkName');
+                    const accountBalance = document.getElementById('accountBalance');
+                    const errorMessage = document.getElementById('errorMessage');
+
+                    async function initWallet() {
+                        if (typeof window.ethereum === 'undefined') {
+                            errorMessage.textContent = 'MetaMask not installed. Please install MetaMask.';
+                            return;
+                        }
+
+                        try {
+                            const provider = new ethers.providers.Web3Provider(window.ethereum);
+                            const signer = provider.getSigner();
+                            const address = await signer.getAddress();
+                            const network = await provider.getNetwork();
+                            const balance = await provider.getBalance(address);
+
+                            statusIndicator.classList.add('connected');
+                            statusText.textContent = 'Connected';
+                            accountAddress.textContent = `${address.slice(0, 6)}...${address.slice(-4)}`;
+                            networkName.textContent = network.name.charAt(0).toUpperCase() + network.name.slice(1);
+                            accountBalance.textContent = `${ethers.utils.formatEther(balance).slice(0, 6)} ETH`;
+
+                            accountInfo.style.display = 'block';
+                            playBtn.style.display = 'block';
+                            connectBtn.style.display = 'none';
+
+                            if (network.chainId !== 8453n && network.chainId !== 84532n) {
+                                errorMessage.textContent = 'Please switch to Base network (Chain ID: 8453)';
+                            } else {
+                                errorMessage.textContent = '';
+                            }
+                        } catch (error) {
+                            console.error('Init error:', error);
+                            errorMessage.textContent = 'Failed to initialize wallet.';
+                        }
+                    }
+
+                    async function checkExistingConnection() {
+                        if (typeof window.ethereum === 'undefined') {
+                            return;
+                        }
+
+                        try {
+                            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                            if (accounts.length > 0) {
+                                await initWallet();
+                            }
+                        } catch (error) {
+                            console.error('Error checking connection:', error);
+                        }
+                    }
+
+                    connectBtn.addEventListener('click', async () => {
+                        try {
+                            errorMessage.textContent = '';
+                            await connectWallet();
+                            await initWallet();
+                        } catch (error) {
+                            errorMessage.textContent = error.message || 'Failed to connect wallet';
+                            console.error('Connection error:', error);
+                        }
+                    });
+
+                    playBtn.addEventListener('click', () => {
+                        window.location.href = 'game.html';
+                    });
+
+                    checkExistingConnection();
+
+                    if (window.ethereum) {
+                        window.ethereum.on('accountsChanged', () => {
+                            window.location.reload();
+                        });
+
+                        window.ethereum.on('chainChanged', () => {
+                            window.location.reload();
+                        });
+                    }
+                };
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', startLogin);
+                } else {
+                    startLogin();
+                }
+            })
+            .catch((error) => {
+                const showError = () => {
+                    const errorMessage = document.getElementById('errorMessage');
+                    if (errorMessage) {
+                        errorMessage.textContent = 'Failed to load Web3 library. Please check your internet connection.';
+                    }
+                };
+
+                console.error(error);
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', showError);
+                } else {
+                    showError();
+                }
+            });
     </script>
 </body>
 </html>
