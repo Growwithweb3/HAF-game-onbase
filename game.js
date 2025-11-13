@@ -303,9 +303,14 @@ function getGameActions(game) {
     const isSeeker = game.seeker.toLowerCase() === userAddress.toLowerCase();
     const actions = [];
     
+    // Always show access code button for hider (if game is still active)
+    if (isHider && (game.status === 0 || game.status === 1 || game.status === 2)) {
+        actions.push('<button class="btn-small" onclick="event.stopPropagation(); generateAccessCodeForGame(' + game.id + ')">🔑 Get Access Code</button>');
+    }
+    
     if (game.status === 0 && isHider) {
-        // Waiting for seeker
-        return '<button class="btn-small" onclick="event.stopPropagation(); openJoinModal(' + game.id + ')">Join</button>';
+        // Waiting for seeker - just show access code button (already added above)
+        return actions.join('');
     }
     
     if (game.status === 1 && isHider) {
@@ -392,6 +397,30 @@ function openGameModal(gameId) {
     // Load and display game details
     loadGameDetails(gameId);
     openModal('gameModal');
+}
+
+// Generate access code for existing game (exposed globally for onclick handlers)
+window.generateAccessCodeForGame = async function(gameId) {
+    try {
+        const accessCode = generateAccessCode();
+        
+        // Try to save access code to backend
+        try {
+            await saveGameAccessCode(gameId, accessCode);
+        } catch (saveError) {
+            console.warn('Failed to save access code to backend:', saveError);
+            // Continue anyway - we'll still show the code
+        }
+        
+        // Show access code prominently
+        const message = `🔑 Access Code for Game #${gameId}\n\n${accessCode}\n\nShare this code with your friend to join!`;
+        showSuccess(message);
+        
+        // Also log to console for easy copying
+        console.log(`\n🔑 ACCESS CODE FOR GAME #${gameId}\nAccess Code: ${accessCode}\n`);
+    } catch (error) {
+        showError('Failed to generate access code: ' + error.message);
+    }
 }
 
 // Handle Actions
@@ -581,6 +610,16 @@ async function loadGameDetails(gameId) {
                 <span>Location Revealed:</span>
                 <span>${game.hiderRevealed ? 'Yes' : 'No'}</span>
             </div>
+            ${game.hider.toLowerCase() === userAddress.toLowerCase() && (game.status === 0 || game.status === 1 || game.status === 2) ? `
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--border);">
+                <button class="btn-primary" onclick="generateAccessCodeForGame(${gameId})" style="width: 100%;">
+                    🔑 Get Access Code
+                </button>
+                <small style="display: block; margin-top: 10px; color: var(--text-secondary); text-align: center;">
+                    Share this code with your friend to join the game
+                </small>
+            </div>
+            ` : ''}
         `;
     } catch (error) {
         document.getElementById('modalBody').innerHTML = `<div class="error">Error loading game: ${error.message}</div>`;
@@ -605,10 +644,18 @@ function showError(message) {
 function showSuccess(message) {
     let successDiv = document.createElement('div');
     successDiv.className = 'success-message';
-    successDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 2000; padding: 15px 20px; background: rgba(0, 255, 136, 0.9); border-radius: 10px; color: black; font-weight: 600; max-width: 400px; white-space: pre-line; text-align: center;';
+    successDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 2000; padding: 15px 20px; background: rgba(0, 255, 136, 0.9); border-radius: 10px; color: black; font-weight: 600; max-width: 400px; white-space: pre-line; text-align: center; box-shadow: 0 4px 20px rgba(0, 255, 136, 0.5);';
     successDiv.textContent = message;
+    
+    // Add close button
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = 'position: absolute; top: 5px; right: 5px; background: transparent; border: none; color: black; font-size: 18px; cursor: pointer; padding: 0 5px;';
+    closeBtn.onclick = () => successDiv.remove();
+    successDiv.appendChild(closeBtn);
+    
     document.body.appendChild(successDiv);
-    setTimeout(() => successDiv.remove(), 10000); // Show for 10 seconds for access code
+    setTimeout(() => successDiv.remove(), 30000); // Show for 30 seconds for access code
 }
 
 function showLoading(message) {
