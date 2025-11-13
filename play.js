@@ -74,22 +74,27 @@ async function handleBoxClick(boxNum) {
     }
 }
 
-// Get game data
+// Get game data (using split getters to avoid stack too deep)
 async function getGame(gameId) {
     try {
-        const game = await contract.getGame(gameId);
+        const [basic, ready, turn] = await Promise.all([
+            contract.getGameBasic(gameId),
+            contract.getGameReady(gameId),
+            contract.getGameTurn(gameId)
+        ]);
+        
         return {
-            creator: game.creator,
-            joiner: game.joiner,
-            stake: ethers.utils.formatEther(game.stake),
-            currentRound: game.currentRound.toNumber(),
-            status: game.status,
-            creatorReady: game.creatorReady,
-            joinerReady: game.joinerReady,
-            currentHider: game.currentHider,
-            currentSeeker: game.currentSeeker,
-            currentHideBox: game.currentHideBox,
-            creatorHiding: game.creatorHiding
+            creator: basic.creator,
+            joiner: basic.joiner,
+            stake: ethers.utils.formatEther(basic.stake),
+            currentRound: basic.currentRound.toNumber(),
+            status: basic.status,
+            creatorReady: ready.creatorReady,
+            joinerReady: ready.joinerReady,
+            currentHider: turn.currentHider,
+            currentSeeker: turn.currentSeeker,
+            currentHideBox: turn.currentHideBox,
+            creatorHiding: turn.creatorHiding
         };
     } catch (error) {
         throw new Error('Failed to get game: ' + error.message);
@@ -246,20 +251,25 @@ async function updateGameState() {
     }
 }
 
-// Get round data
+// Get round data (using split getters)
 async function getRound(gameId, roundNum) {
     try {
-        const round = await contract.getRound(gameId, roundNum);
+        const [scores, hides, finds] = await Promise.all([
+            contract.getRoundScores(gameId, roundNum),
+            contract.getRoundHides(gameId, roundNum),
+            contract.getRoundFinds(gameId, roundNum)
+        ]);
+        
         return {
-            creatorHideBox: round.creatorHideBox,
-            joinerHideBox: round.joinerHideBox,
-            creatorFindBox: round.creatorFindBox,
-            joinerFindBox: round.joinerFindBox,
-            creatorFound: round.creatorFound,
-            joinerFound: round.joinerFound,
-            creatorScore: round.creatorScore.toNumber(),
-            joinerScore: round.joinerScore.toNumber(),
-            completed: round.completed
+            creatorHideBox: hides.creatorHideBox,
+            joinerHideBox: hides.joinerHideBox,
+            creatorFindBox: finds.creatorFindBox,
+            joinerFindBox: finds.joinerFindBox,
+            creatorFound: finds.creatorFound,
+            joinerFound: finds.joinerFound,
+            creatorScore: scores.creatorScore.toNumber(),
+            joinerScore: scores.joinerScore.toNumber(),
+            completed: scores.completed
         };
     } catch (error) {
         return {

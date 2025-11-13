@@ -233,38 +233,50 @@ contract CoinHideGame {
         
         emit CoinFound(gameId, game.currentRound, msg.sender, box, found);
         
+        // Check if round is complete
+        checkRoundComplete(gameId);
+    }
+    
+    function checkRoundComplete(uint256 gameId) internal {
+        Game storage game = games[gameId];
+        Round storage round = rounds[gameId][game.currentRound];
+        
         // Check if both players have hidden and found
         if (round.creatorHideBox != 0 && round.joinerHideBox != 0 && 
             round.creatorFindBox != 0 && round.joinerFindBox != 0) {
-            // Round complete - calculate final scores
+            // Round complete
             round.completed = true;
             game.status = GameStatus.RoundComplete;
             
             emit RoundComplete(gameId, game.currentRound, round.creatorScore, round.joinerScore);
             
-            // Check for winner (need 2 points to win a round)
+            // Check for winner
             if (round.creatorScore >= WIN_SCORE) {
                 finishGame(gameId, game.creator);
             } else if (round.joinerScore >= WIN_SCORE) {
                 finishGame(gameId, game.joiner);
             } else {
-                // Draw - start new round
                 startNewRound(gameId);
             }
         } else {
-            // Switch roles - other player hides now
-            game.creatorHiding = !game.creatorHiding;
-            if (game.creatorHiding) {
-                game.currentHider = game.creator;
-                game.currentSeeker = game.joiner;
-            } else {
-                game.currentHider = game.joiner;
-                game.currentSeeker = game.creator;
-            }
-            game.status = GameStatus.Hiding;
-            game.hideStartTime = block.timestamp;
-            game.currentHideBox = 0;
+            // Switch roles
+            switchRoles(gameId);
         }
+    }
+    
+    function switchRoles(uint256 gameId) internal {
+        Game storage game = games[gameId];
+        game.creatorHiding = !game.creatorHiding;
+        if (game.creatorHiding) {
+            game.currentHider = game.creator;
+            game.currentSeeker = game.joiner;
+        } else {
+            game.currentHider = game.joiner;
+            game.currentSeeker = game.creator;
+        }
+        game.status = GameStatus.Hiding;
+        game.hideStartTime = block.timestamp;
+        game.currentHideBox = 0;
     }
     
     function finishGame(uint256 gameId, address winner) internal {
@@ -278,58 +290,58 @@ contract CoinHideGame {
         emit GameFinished(gameId, winner, reward);
     }
     
-    function getGame(uint256 gameId) external view returns (
+    // Simplified getters to avoid stack too deep
+    function getGameBasic(uint256 gameId) external view returns (
         address creator,
         address joiner,
         uint256 stake,
         uint256 currentRound,
-        GameStatus status,
-        bool creatorReady,
-        bool joinerReady,
+        GameStatus status
+    ) {
+        Game memory game = games[gameId];
+        return (game.creator, game.joiner, game.stake, game.currentRound, game.status);
+    }
+    
+    function getGameReady(uint256 gameId) external view returns (bool creatorReady, bool joinerReady) {
+        Game memory game = games[gameId];
+        return (game.creatorReady, game.joinerReady);
+    }
+    
+    function getGameTurn(uint256 gameId) external view returns (
         address currentHider,
         address currentSeeker,
         uint8 currentHideBox,
         bool creatorHiding
     ) {
         Game memory game = games[gameId];
-        return (
-            game.creator,
-            game.joiner,
-            game.stake,
-            game.currentRound,
-            game.status,
-            game.creatorReady,
-            game.joinerReady,
-            game.currentHider,
-            game.currentSeeker,
-            game.currentHideBox,
-            game.creatorHiding
-        );
+        return (game.currentHider, game.currentSeeker, game.currentHideBox, game.creatorHiding);
     }
     
-    function getRound(uint256 gameId, uint256 roundNum) external view returns (
-        uint8 creatorHideBox,
-        uint8 joinerHideBox,
-        uint8 creatorFindBox,
-        uint8 joinerFindBox,
-        bool creatorFound,
-        bool joinerFound,
+    function getRoundScores(uint256 gameId, uint256 roundNum) external view returns (
         uint256 creatorScore,
         uint256 joinerScore,
         bool completed
     ) {
         Round memory round = rounds[gameId][roundNum];
-        return (
-            round.creatorHideBox,
-            round.joinerHideBox,
-            round.creatorFindBox,
-            round.joinerFindBox,
-            round.creatorFound,
-            round.joinerFound,
-            round.creatorScore,
-            round.joinerScore,
-            round.completed
-        );
+        return (round.creatorScore, round.joinerScore, round.completed);
+    }
+    
+    function getRoundHides(uint256 gameId, uint256 roundNum) external view returns (
+        uint8 creatorHideBox,
+        uint8 joinerHideBox
+    ) {
+        Round memory round = rounds[gameId][roundNum];
+        return (round.creatorHideBox, round.joinerHideBox);
+    }
+    
+    function getRoundFinds(uint256 gameId, uint256 roundNum) external view returns (
+        uint8 creatorFindBox,
+        uint8 joinerFindBox,
+        bool creatorFound,
+        bool joinerFound
+    ) {
+        Round memory round = rounds[gameId][roundNum];
+        return (round.creatorFindBox, round.joinerFindBox, round.creatorFound, round.joinerFound);
     }
     
     function getPlayerHistory(uint256 gameId, address player) external view returns (uint8[] memory) {
