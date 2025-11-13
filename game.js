@@ -290,12 +290,10 @@ function createGameCard(game) {
                 <span class="game-stake">${formatEth(game.stake)}</span>
             </div>
             ${isMyGame ? `
-            <div style="margin-top: 10px; padding: 10px; background: rgba(0, 212, 255, 0.1); border-radius: 8px; border-left: 3px solid var(--primary);">
-                <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px;">
-                    ${getGameInstruction(game, isHider, isSeeker)}
-                </div>
-            </div>
             <div class="game-actions">
+                <button class="btn-small" onclick="event.stopPropagation(); window.location.href='play.html?id=${game.id}'" style="width: 100%; margin-bottom: 10px; background: linear-gradient(135deg, var(--primary), var(--secondary));">
+                    🎮 Play Game
+                </button>
                 ${getGameActions(game)}
             </div>
             ` : ''}
