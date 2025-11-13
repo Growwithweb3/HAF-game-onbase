@@ -265,8 +265,9 @@ function renderGames(games, container) {
 function createGameCard(game) {
     const statusText = getStatusText(game.status);
     const statusClass = `status-${statusText.toLowerCase()}`;
-    const isMyGame = game.hider.toLowerCase() === userAddress.toLowerCase() || 
-                     game.seeker.toLowerCase() === userAddress.toLowerCase();
+    const isHider = game.hider.toLowerCase() === userAddress.toLowerCase();
+    const isSeeker = game.seeker !== ethers.constants.AddressZero && game.seeker.toLowerCase() === userAddress.toLowerCase();
+    const isMyGame = isHider || isSeeker;
     
     return `
         <div class="game-card" data-game-id="${game.id}">
@@ -289,12 +290,49 @@ function createGameCard(game) {
                 <span class="game-stake">${formatEth(game.stake)}</span>
             </div>
             ${isMyGame ? `
+            <div style="margin-top: 10px; padding: 10px; background: rgba(0, 212, 255, 0.1); border-radius: 8px; border-left: 3px solid var(--primary);">
+                <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px;">
+                    ${getGameInstruction(game, isHider, isSeeker)}
+                </div>
+            </div>
             <div class="game-actions">
                 ${getGameActions(game)}
             </div>
             ` : ''}
         </div>
     `;
+}
+
+// Get Game Instruction
+function getGameInstruction(game, isHider, isSeeker) {
+    if (game.status === 0) {
+        if (isHider) {
+            return '⏳ Waiting for a seeker to join. Share your access code!';
+        } else {
+            return '👀 This game is waiting for a seeker. Join with the access code!';
+        }
+    } else if (game.status === 1) {
+        if (isHider) {
+            return '🎯 Hiding Phase: Set your hide location (1-100) within 5 minutes!';
+        } else if (isSeeker) {
+            return '⏳ Waiting for hider to set location...';
+        }
+    } else if (game.status === 2) {
+        if (isHider && !game.hiderRevealed) {
+            return '🔓 Reveal your location so the seeker can try to find it!';
+        } else if (isHider && game.hiderRevealed) {
+            return '👀 Location revealed! Waiting for seeker to claim...';
+        } else if (isSeeker && !game.hiderRevealed) {
+            return '⏳ Waiting for hider to reveal location...';
+        } else if (isSeeker && game.hiderRevealed) {
+            return '🔍 Try to find the location! Enter the number (1-100) you think it is.';
+        }
+    } else if (game.status === 3) {
+        return '🎉 Game finished! Winner claimed the stake.';
+    } else if (game.status === 4) {
+        return '⏰ Game timed out. Winner claimed the stake.';
+    }
+    return 'Game in progress...';
 }
 
 // Get Game Actions
@@ -504,16 +542,36 @@ async function handleJoinGame() {
 
         const stakeAmount = parseFloat(stakeValue);
 
+        // Check game status first
+        showLoading('Checking game status...');
+        const game = await getGame(gameId);
+        
+        if (game.status !== 0) {
+            if (game.status === 1 || game.status === 2) {
+                throw new Error('This game already has a seeker! The game is in progress. Only one person can join each game.');
+            } else {
+                throw new Error('This game is no longer available to join. Status: ' + getStatusText(game.status));
+            }
+        }
+        
+        if (game.hider.toLowerCase() === userAddress.toLowerCase()) {
+            throw new Error('You cannot join your own game! You are the hider.');
+        }
+
         showLoading('Verifying access code...');
         await verifyGameAccessCode(gameId, accessCodeInput);
 
         showLoading('Joining game...');
         await joinGame(gameId, stakeAmount);
         closeModal('joinModal');
-        showSuccess('Successfully joined game!');
+        showSuccess('🎮 Successfully joined game!\n\nYou are now the Seeker!\n\nWait for the Hider to set their location, then try to find it!');
         await loadGameData();
     } catch (error) {
-        showError(error.message);
+        let errorMsg = error.message;
+        if (errorMsg.includes('Game not available')) {
+            errorMsg = 'This game already has a seeker! Only one person can join each game. Try creating a new game or joining a different one.';
+        }
+        showError(errorMsg);
     } finally {
         hideLoading();
     }
