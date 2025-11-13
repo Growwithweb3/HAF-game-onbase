@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.'));
+// Don't serve static files here - API routes must come first
 
 // Base RPC Provider
 const BASE_RPC = 'https://mainnet.base.org';
@@ -271,7 +271,10 @@ app.get('/api/health', (req, res) => {
     res.json({ success: true, message: 'Server is running' });
 });
 
-// Serve frontend
+// Serve static files AFTER all API routes
+app.use(express.static('.'));
+
+// Serve frontend (fallback routes)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });

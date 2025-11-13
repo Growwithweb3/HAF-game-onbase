@@ -407,9 +407,24 @@ async function handleCreateGame() {
         showLoading('Creating game...');
         const gameId = await createGame(stakeAmount);
         const accessCode = generateAccessCode();
-        await saveGameAccessCode(gameId, accessCode);
+        
+        // Try to save access code, but don't fail if it doesn't work
+        try {
+            await saveGameAccessCode(gameId, accessCode);
+        } catch (saveError) {
+            console.warn('Failed to save access code to backend:', saveError);
+            // Continue anyway - we'll still show the code
+        }
+        
         closeModal('createModal');
-        showSuccess(`Game created! Game ID: ${gameId}\nAccess Code: ${accessCode}`);
+        
+        // Show access code prominently
+        const message = `🎮 Game Created Successfully!\n\nGame ID: ${gameId}\n\n🔑 Access Code: ${accessCode}\n\nShare this code with your friend to join!`;
+        showSuccess(message);
+        
+        // Also log to console for easy copying
+        console.log(`\n🎮 GAME CREATED!\nGame ID: ${gameId}\nAccess Code: ${accessCode}\n`);
+        
         await loadGameData();
     } catch (error) {
         showError(error.message);
@@ -590,10 +605,10 @@ function showError(message) {
 function showSuccess(message) {
     let successDiv = document.createElement('div');
     successDiv.className = 'success-message';
-    successDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 2000; padding: 15px 20px; background: rgba(0, 255, 136, 0.9); border-radius: 10px; color: black; font-weight: 600;';
+    successDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 2000; padding: 15px 20px; background: rgba(0, 255, 136, 0.9); border-radius: 10px; color: black; font-weight: 600; max-width: 400px; white-space: pre-line; text-align: center;';
     successDiv.textContent = message;
     document.body.appendChild(successDiv);
-    setTimeout(() => successDiv.remove(), 5000);
+    setTimeout(() => successDiv.remove(), 10000); // Show for 10 seconds for access code
 }
 
 function showLoading(message) {
