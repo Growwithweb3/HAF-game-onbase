@@ -1,4 +1,462 @@
 // Web3 and Contract Configuration
+// EscroGame Contract - For deposits/withdrawals
+const ESCRO_CONTRACT_ADDRESS = '0x8F4D6D46E4977bbeFFa2D73544fe6f935a3a4859';
+const ESCRO_CONTRACT_ABI = [
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "location",
+				"type": "uint256"
+			}
+		],
+		"name": "claimFound",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			}
+		],
+		"name": "claimTimeout",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "createGame",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "hider",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "stake",
+				"type": "uint256"
+			}
+		],
+		"name": "GameCreated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "winner",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "GameTimeout",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "winner",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "GameWon",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes32",
+				"name": "locationHash",
+				"type": "bytes32"
+			}
+		],
+		"name": "HideLocationSet",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			}
+		],
+		"name": "joinGame",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "location",
+				"type": "uint256"
+			}
+		],
+		"name": "LocationRevealed",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "location",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "secret",
+				"type": "string"
+			}
+		],
+		"name": "revealLocation",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "seeker",
+				"type": "address"
+			}
+		],
+		"name": "SeekerJoined",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "locationHash",
+				"type": "bytes32"
+			}
+		],
+		"name": "setHideLocation",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "balances",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "gameCounter",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "games",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "hider",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "seeker",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "stake",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "hideTime",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "seekTime",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "hideLocation",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "revealTime",
+				"type": "uint256"
+			},
+			{
+				"internalType": "enum EscroGame.GameStatus",
+				"name": "status",
+				"type": "uint8"
+			},
+			{
+				"internalType": "bool",
+				"name": "hiderRevealed",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "gameId",
+				"type": "uint256"
+			}
+		],
+		"name": "getGame",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "hider",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "seeker",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "stake",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "hideTime",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "seekTime",
+				"type": "uint256"
+			},
+			{
+				"internalType": "enum EscroGame.GameStatus",
+				"name": "status",
+				"type": "uint8"
+			},
+			{
+				"internalType": "bool",
+				"name": "hiderRevealed",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "player",
+				"type": "address"
+			}
+		],
+		"name": "getPlayerGames",
+		"outputs": [
+			{
+				"internalType": "uint256[]",
+				"name": "",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "HIDE_DURATION",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "MIN_STAKE",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "playerGames",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "SEEK_DURATION",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+
+// CoinHideGame Contract - For new 3x3 grid game logic
 const CONTRACT_ADDRESS = '0x07Ce2990f2EBc8D315C5e2119C2d32c30DC99072';
 const CONTRACT_ABI = [
 	{
@@ -970,7 +1428,7 @@ const CONTRACT_ABI = [
 	}
 ];
 
-let provider, signer, contract, userAddress;
+let provider, signer, contract, escroContract, userAddress;
 
 // Base Network Configuration
 const BASE_MAINNET = {
@@ -1014,8 +1472,9 @@ async function initWeb3() {
     }
     
     contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+    escroContract = new ethers.Contract(ESCRO_CONTRACT_ADDRESS, ESCRO_CONTRACT_ABI, signer);
     
-    return { provider, signer, contract, userAddress };
+    return { provider, signer, contract, escroContract, userAddress };
 }
 
 // Connect Wallet
@@ -1177,7 +1636,8 @@ async function getBalance(address) {
 
 async function getContractBalance() {
     try {
-        const balance = await provider.getBalance(CONTRACT_ADDRESS);
+        // Get balance from EscroGame contract (for deposits/withdrawals)
+        const balance = await provider.getBalance(ESCRO_CONTRACT_ADDRESS);
         return ethers.utils.formatEther(balance);
     } catch (error) {
         throw new Error('Failed to get contract balance: ' + error.message);
